@@ -327,6 +327,7 @@ class trade:
         """
         date = convert_date(date)
         partcftb = self.cftable[self.cftable["date"] <= date]
+        print(partcftb)
         value = self.aim.price[self.aim.price["date"] <= date].iloc[-1].netvalue
 
         if len(partcftb) == 0:
