@@ -57,6 +57,24 @@ for code in jjcode_list:
     t_get = dqye
 print('整体收益率:{}'.format(t_get/t_buy-1))
 
+#添加交易记录 
+import pandas as pd
+def add_op(date,code,money,csv):
+    trade_info=xa.record("E:\\git\\xalpha\\tests\\fund_2020.csv").status
+    jjcode_list = list(trade_info.columns.values)[1:] #持有的全部基金列表
+    print(trade_info.index.values[-1])
+    
+    if code in jjcode_list:
+        d={'date':date,code:money}
+#         print(d)
+        new=pd.DataFrame(d,index=[1])   
+        trade_info=trade_info.append(new)
+        print(trade_info)
+    else:
+        pass
+
+add_op('2020-03026','163411',4000,"E:\\git\\xalpha\\tests\\fund_2020.csv")
+
 
 
 
