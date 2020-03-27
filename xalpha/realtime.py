@@ -89,7 +89,8 @@ class rtdata:
         self.rtvalue = float(match(r'.*"gsz":"(\d*\.\d*)",.*', page.text)[1])
         self.name = match(r'.*"name":"([^,]*)",.*', page.text)[1]
         self.time = dt.datetime.strptime(
-            match(r'.*"gztime":"([\d\s\-\:]*)".*', page.text)[1], "%Y-%m-%d %H:%M"
+            match(r'.*"gztime":"([\d\s\-\:]*)".*',
+                  page.text)[1], "%Y-%m-%d %H:%M"
         )
 
 

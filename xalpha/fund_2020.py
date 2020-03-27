@@ -1,3 +1,4 @@
+#coding=utf-8
 import sys
 sys.path.insert(0, "../../")
 
@@ -38,12 +39,12 @@ def f(trade_info,code): #某个基金的交易信息
     dqjz = get_jz(code,yesterday) #api接口到24点以后才更新净值,所以做多只能取到昨日净值
     dqye = fe*dqjz+sell #包括当前持有金额以及已卖出金额之和
     syl = dqye/buy-1#收益率
-    print('份额:{},昨日净值{},当前余额{},总投入{},收益率{}'.format(fe,dqjz,dqye,buy,syl))
+    # print('{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{}'.format(yesterday,fe,dqjz,dqye,buy,syl))
     return (fe,dqjz,dqye,buy,syl)
 
 # f(trade_info,code)
 
-read=xa.record("E:\\git\\xalpha\\tests\\fund_2020.csv")
+read=xa.record("../tests/fund_2020.csv")
 # read.status
 
 jjcode_list = list(read.status.columns.values)[1:] #持有的全部基金列表
@@ -54,26 +55,42 @@ for code in jjcode_list:
 
     fe,dqjz,dqye,buy,syl = f(trade_info,code)
     t_buy += buy
-    t_get = dqye
-print('整体收益率:{}'.format(t_get/t_buy-1))
+    t_get += dqye
+# print('总投入:{},总回报:{},整体收益率:{}'.format(t_buy,t_get,t_get/t_buy-1))
 
 #添加交易记录 
 import pandas as pd
 def add_op(date,code,money,csv):
-    trade_info=xa.record("E:\\git\\xalpha\\tests\\fund_2020.csv").status
+    trade_info=xa.record(csv).status
     jjcode_list = list(trade_info.columns.values)[1:] #持有的全部基金列表
-    print(trade_info.index.values[-1])
+    # print(trade_info.index.values[-1])
     
+    #把每行的时间格式改掉
+    for index, row in trade_info.iterrows():
+        date = row.get('date') #2020-02-21 00:00:00 timestamp
+        # print(type(date)
+        trade_info.at[index,'date'] = date.strftime("%Y%m%d")
+    print(trade_info)
+
     if code in jjcode_list:
         d={'date':date,code:money}
-#         print(d)
-        new=pd.DataFrame(d,index=[1])   
-        trade_info=trade_info.append(new)
+        new=pd.DataFrame(d,index=[1])
+        trade_info=trade_info.append(new,ignore_index=True,sort=False)
+        trade_info.fillna(0,inplace=True) #注意inplace=True才能更改掉trade_info
         print(trade_info)
+
+        #把float->int 比如1000.00改为1000
+        for column in trade_info.columns:
+            # print(column)
+            if column != 'date':
+                trade_info[column] = trade_info[column].astype(int)
+                # print(trade_info[column])
+
+        trade_info.to_csv('../tests/new_fund_2020.csv',index=False)
     else:
         pass
-
-add_op('2020-03026','163411',4000,"E:\\git\\xalpha\\tests\\fund_2020.csv")
+# test
+# add_op('20200326','163411',4000,"../tests/fund_2020.csv")
 
 
 
