@@ -21,6 +21,8 @@ def get_jz(code,date):
         return dwjz.get(index)
     
 def f(trade_info,code): #某个基金的交易信息
+    fundinfo = xa.fundinfo(code)
+
     buy,sell=0,0
     fe=0
     for index, row in trade_info.iterrows():
@@ -39,7 +41,7 @@ def f(trade_info,code): #某个基金的交易信息
     dqjz = get_jz(code,yesterday) #api接口到24点以后才更新净值,所以做多只能取到昨日净值
     dqye = fe*dqjz+sell #包括当前持有金额以及已卖出金额之和
     syl = dqye/buy-1#收益率
-    # print('{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{}'.format(yesterday,fe,dqjz,dqye,buy,syl))
+    print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,yesterday,fe,dqjz,dqye,buy,syl,dqye-buy))
     return (fe,dqjz,dqye,buy,syl)
 
 # f(trade_info,code)
@@ -56,7 +58,7 @@ for code in jjcode_list:
     fe,dqjz,dqye,buy,syl = f(trade_info,code)
     t_buy += buy
     t_get += dqye
-# print('总投入:{},总回报:{},整体收益率:{}'.format(t_buy,t_get,t_get/t_buy-1))
+print('总投入:{},总回报:{},整体收益率:{},盈利{}'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
 #添加交易记录 
 import pandas as pd
@@ -92,9 +94,12 @@ def add_op(date,code,money,csv):
 # test
 # add_op('20200326','163411',4000,"../tests/fund_2020.csv")
 
+# 计算沪深300收益率
+def get_300():
+    beginday='20200221'
+    yesterday=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
+    begin = get_jz('510300',beginday)
+    end = get_jz('510300',yesterday)
+    print('同期510300收益率:{}'.format((end/begin - 1.0)))
 
-
-
-
-
-
+get_300()
