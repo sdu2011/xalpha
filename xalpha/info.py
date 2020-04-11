@@ -29,6 +29,7 @@ from xalpha.indicator import indicator
 
 _warnmess = "Something weird on redem fee, please adjust self.segment by hand"
 
+_do_print_warning = True
 
 def _download(url, tries=5):
     """
@@ -373,7 +374,8 @@ class fundinfo(basicinfo):
             )
         except ValueError:
             rate = 0
-            print("warning: this fund has no data for rate")  # know cases: 510030
+            if _do_print_warning:
+                print("warning: this fund has no data for rate")  # know cases: 510030
 
         name = eval(re.match(r".*fS_name = ([^;]*);.*", self._page.text).groups()[0])
 
