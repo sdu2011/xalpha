@@ -18,7 +18,12 @@ def get_jz(code,date):
     fundinfo = xa.fundinfo(code)
     df=fundinfo.price
     # print(df)
-    dwjz = df[df['date']==date]['netvalue'] #获取某一日期净值
+    
+    #获取某一日期净值 如果没有则返回最后一个交易日净值
+    if df[df['date']== date].empty:
+        dwjz = df.tail(1)['netvalue']
+    else:
+        dwjz = df[df['date']==date]['netvalue'] 
 
     for index in dwjz.index:
         # print('{},date:{}单位净值为:{}'.format(fundinfo.name,date,dwjz.get(index)))
@@ -35,18 +40,20 @@ def f(trade_info,code): #某个基金的交易信息
 
         v = row.get(code)
         if v > 0:
-            buy += v
+            # print('申购费率:{}'.format(fundinfo.rate)) 
+            buy += v*(1+fundinfo.rate/100.) #加上申购费率 
+            # buy += v
         else:
             sell += v
 
         fe += v/dwjz #份额变动
     
-    yesterday=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
-    dqjz = get_jz(code,yesterday) #api接口到24点以后才更新净值,所以做多只能取到昨日净值
+    last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
+    dqjz = get_jz(code,last_trade_day) #api接口到24点以后才更新净值,所以做多只能取到昨日净值
     # print(dqjz)
     dqye = fe*dqjz+sell #包括当前持有金额以及已卖出金额之和
     syl = dqye/buy-1#收益率
-    # print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,yesterday,fe,dqjz,dqye,buy,syl,dqye-buy))
+    # print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,last_trade_day,fe,dqjz,dqye,buy,syl,dqye-buy))
     print('{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,dqye,buy,syl,dqye-buy))
     return (fe,dqjz,dqye,buy,syl)
 
@@ -65,7 +72,7 @@ def trade_analysis():
         fe,dqjz,dqye,buy,syl = f(trade_info,code)
         t_buy += buy
         t_get += dqye
-    print('总投入:{},总回报:{},整体收益率:{},盈利{}'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
+    print('总投入:{},总回报:{},整体收益率:{},盈利{}\n'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
 trade_analysis()
 
@@ -80,31 +87,34 @@ def fake_trade_300(fake_code):
 
         buy,sell=0,0
         fe=0
+        fundinfo = xa.fundinfo(fake_code)
+        shengoufeilv = fundinfo.rate/100.
+
         for index, row in trade_info.iterrows():
             date = row.get('date')
-            dwjz = get_jz('510300',date) #假设买的全是hs300
+            dwjz = get_jz(fake_code,date) #假设买的全是hs300
 
             v = row.get(code)
             if v > 0:
-                buy += v
+                buy += v*(1+shengoufeilv) #加上申购费率
             else:
                 sell += v
 
             fe += v/dwjz #份额变动
         
-        yesterday=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
-        dqjz = get_jz('510300',yesterday) 
+        last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
+        dqjz = get_jz(fake_code,last_trade_day) 
         # print(dqjz)
         dqye = fe*dqjz+sell #包括当前持有金额以及已卖出金额之和
         syl = dqye/buy-1#收益率
-        # print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,yesterday,fe,dqjz,dqye,buy,syl,dqye-buy))
+        # print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,last_trade_day,fe,dqjz,dqye,buy,syl,dqye-buy))
         print('{},当前余额{},总投入{},收益率{},盈利{}'.format(fake_code,dqye,buy,syl,dqye-buy))
 
         t_buy += buy
         t_get += dqye
-    print('假设全部买入{},总投入:{},总回报:{},整体收益率:{},盈利{}'.format(fake_code,t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
+    print('假设全部买入{},总投入:{},总回报:{},整体收益率:{},盈利{}\n'.format(fake_code,t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
-fake_trade_300('510310')
+fake_trade_300('510300')
 
 #添加交易记录 
 import pandas as pd
@@ -143,9 +153,9 @@ def add_op(date,code,money,csv):
 # 计算沪深300收益率
 def get_300():
     beginday='20200221'
-    yesterday=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
+    last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
     begin = get_jz('510300',beginday)
-    end = get_jz('510300',yesterday)
+    end = get_jz('510300',last_trade_day)
     print('同期510300收益率:{}'.format((end/begin - 1.0)))
 
 get_300()
