@@ -41,12 +41,12 @@ def f(trade_info,code): #某个基金的交易信息
         v = row.get(code)
         if v > 0:
             # print('申购费率:{}'.format(fundinfo.rate)) 
-            buy += v*(1+fundinfo.rate/100.) #加上申购费率 
+            buy += v
             # buy += v
         else:
             sell += v
 
-        fe += v/dwjz #份额变动
+        fe += v*(1-fundinfo.rate/100.)/dwjz #份额变动 要考虑申购费率 
     
     last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
     dqjz = get_jz(code,last_trade_day) #api接口到24点以后才更新净值,所以做多只能取到昨日净值
@@ -54,7 +54,7 @@ def f(trade_info,code): #某个基金的交易信息
     dqye = fe*dqjz+sell #包括当前持有金额以及已卖出金额之和
     syl = dqye/buy-1#收益率
     # print('{},{}--份额:{},昨日净值{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,last_trade_day,fe,dqjz,dqye,buy,syl,dqye-buy))
-    print('{},当前余额{},总投入{},收益率{},盈利{}'.format(fundinfo.name,dqye,buy,syl,dqye-buy))
+    print('{},当前余额{:.2f},总投入{:.2f},收益率{:.3f},盈利{:.2f}'.format(fundinfo.name,dqye,buy,syl,dqye-buy))
     return (fe,dqjz,dqye,buy,syl)
 
 # f(trade_info,code)
@@ -72,7 +72,7 @@ def trade_analysis():
         fe,dqjz,dqye,buy,syl = f(trade_info,code)
         t_buy += buy
         t_get += dqye
-    print('总投入:{},总回报:{},整体收益率:{},盈利{}\n'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
+    print('总投入:{},总回报:{},整体收益率:{:.3f},盈利{}\n'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
 trade_analysis()
 
@@ -96,11 +96,11 @@ def fake_trade_300(fake_code):
 
             v = row.get(code)
             if v > 0:
-                buy += v*(1+shengoufeilv) #加上申购费率
+                buy += v
             else:
                 sell += v
 
-            fe += v/dwjz #份额变动
+            fe += v*(1-shengoufeilv)/dwjz #份额变动
         
         last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
         dqjz = get_jz(fake_code,last_trade_day) 
@@ -112,7 +112,7 @@ def fake_trade_300(fake_code):
 
         t_buy += buy
         t_get += dqye
-    print('假设全部买入{},总投入:{},总回报:{},整体收益率:{},盈利{}\n'.format(fake_code,t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
+    print('假设全部买入{},总投入:{},总回报:{},整体收益率:{:.3f},盈利{}\n'.format(fake_code,t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
 fake_trade_300('510300')
 
