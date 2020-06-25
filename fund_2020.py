@@ -62,7 +62,7 @@ def f(trade_info,code): #某个基金的交易信息
 # read.status
 
 def trade_analysis():
-    read=xa.record("./tests/fund_2020.csv")
+    read=xa.record("./tests/fund_2020.csv",skiprows=1)
     jjcode_list = list(read.status.columns.values)[1:] #持有的全部基金列表
     t_buy,t_get = 0,0 #总计买入,总计剩余(包括当前剩余及赎回)
     for code in jjcode_list:
@@ -74,11 +74,11 @@ def trade_analysis():
         t_get += dqye
     print('总投入:{},总回报:{},整体收益率:{:.3f},盈利{}\n'.format(t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
-trade_analysis()
+
 
 #假设全部买510300
 def fake_trade_300(fake_code):
-    read=xa.record("./tests/fund_2020.csv")
+    read=xa.record("./tests/fund_2020.csv",skiprows=1)
     jjcode_list = list(read.status.columns.values)[1:] #持有的全部基金列表
     t_buy,t_get = 0,0 #总计买入,总计剩余(包括当前剩余及赎回)
     for code in jjcode_list:
@@ -114,7 +114,7 @@ def fake_trade_300(fake_code):
         t_get += dqye
     print('假设全部买入{},总投入:{},总回报:{},整体收益率:{:.3f},盈利{}\n'.format(fake_code,t_buy,t_get,t_get/t_buy-1,t_get-t_buy))
 
-fake_trade_300('510300')
+
 
 #添加交易记录 
 import pandas as pd
@@ -158,4 +158,103 @@ def get_300():
     end = get_jz('510300',last_trade_day)
     print('同期510300收益率:{}'.format((end/begin - 1.0)))
 
-get_300()
+# trade_analysis()
+# fake_trade_300('510300')
+# get_300()
+
+"""获取年度涨幅"""
+def get_year_rate(code):
+    last_trade_day=datetime.strftime(datetime.now() - timedelta(1), '%Y-%m-%d')
+    first_day_of_year='2020-01-02'
+    fake_buy = 10000 #假设买入10000元
+    b_jz = get_jz(code,first_day_of_year)
+    e_jz = get_jz(code,last_trade_day)
+
+    buy_fe = fake_buy/b_jz
+
+    current_money = e_jz * buy_fe
+
+    fundinfo = xa.fundinfo(code)
+    #考虑分红情况
+    fenghong = get_fenhong(code)
+    fenghong_zonge = fenghong * buy_fe
+    add = ( fenghong_zonge + current_money - fake_buy)/fake_buy
+    # print('{},{},add={}',b_jz,e_jz,add)
+
+    return add
+
+import numpy as np
+def get_fenhong(code):
+    fundinfo = xa.fundinfo(code)
+    # print(fundinfo.fenhongdate)
+    if(fundinfo.fenhongdate):
+        # print(fundinfo.special.loc[])
+        s = fundinfo.special
+        # print(s.dtypes)
+        # print(s[s['date']])
+        tmp = s[s.date > np.datetime64('2020-01-01 00:00:00')]
+        # print(tmp)
+
+        comment = tmp['comment']
+        fenhong = comment.sum()
+        print('分红总额为{}'.format(fenhong))
+        for _,value in comment.items():
+            print(value)
+
+        return fenhong
+    else:
+        print('分红总额为{}'.format(0))
+        return 0
+
+# get_year_rate('163406')
+
+#查询某一基金截止某一日期的份额,用于计算分红
+def get_fener(deadline_date,code):
+    read=xa.record("./tests/fund_2020.csv",skiprows=1)
+    trade_info = read.status.loc[:,['date',code]]
+    trade_info = trade_info[trade_info.date < np.datetime64(deadline_date)]
+    # print(trade_info)
+
+    fundinfo = xa.fundinfo(code)
+
+    #计算份额变动
+    fe = 0
+    for _, row in trade_info.iterrows():
+        date = row.get('date')
+        dwjz = get_jz(code,date)
+
+        v = row.get(code) #买入或者卖出金额
+        if v > 0:
+            # print('申购费率:{}'.format(fundinfo.rate)) 
+            fe += v*(1-fundinfo.rate/100.)/dwjz
+        else:
+            fe += v/dwjz #这里没有考虑赎回的费率 注意这里不是减法　卖出的话v为负值
+
+    print('截止{}持有份额{}'.format(deadline_date,fe))
+    return fe
+
+def cal_fenhong(code):
+    fundinfo = xa.fundinfo(code)
+
+    total_fenhong = 0
+    # print(fundinfo.fenhongdate)
+    if(fundinfo.fenhongdate):
+        s = fundinfo.special
+        dates = s[s.date > np.datetime64('2020-01-01 00:00:00')]['date'] #
+        fenhongs = s[s.date > np.datetime64('2020-01-01 00:00:00')]['comment']
+        # print(tmp.date)
+
+        for index,date in dates.items():
+            # print(type(date))
+            # print(str(date)[:10])
+            fener = get_fener(date,code) #计算分红日持有份额
+            fenhong_per_fener = fenhongs[index] #分红日每一份额分红金额
+            
+            total_fenhong += fenhong_per_fener * fener
+    
+    
+    print('总计分红{}'.format(total_fenhong))
+    return total_fenhong
+
+# get_fener('2020-05-11','001938')
+cal_fenhong('001938')
